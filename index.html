@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ห้องทดลองเซลล์ไฟฟ้าเคมี 3D | เคมี ม.5</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#e8f1f6;--mute:#93abba;--cu:#e08a52;--tl:#35d6b8;--e:#ffc247;--line:rgba(255,255,255,.15)}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{font-family:"IBM Plex Sans Thai",Tahoma,sans-serif;color:var(--ink);background:radial-gradient(120% 90% at 30% 15%,#14394f,#07131c 70%) fixed;line-height:1.6}
+.app{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:14px;height:100vh;padding:14px}
+.glass{background:rgba(255,255,255,.07);border:1px solid var(--line);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-radius:18px}
+.stage{position:relative;overflow:hidden;border-radius:22px;border:1px solid var(--line);background:radial-gradient(70% 60% at 50% 40%,rgba(53,214,184,.12),transparent)}
+.stage canvas{position:absolute;inset:0;touch-action:none}
+.hud{position:absolute;left:16px;top:16px;padding:14px 18px;max-width:290px}
+.hud h1{font-size:1rem;margin:0 0 2px;font-weight:600}
+.hud p{margin:0;color:var(--mute);font-size:.8rem}
+.big{font-size:2.5rem;font-weight:600;color:var(--e);line-height:1.15;margin-top:10px;font-variant-numeric:tabular-nums}
+.hs{position:absolute;left:0;top:0;display:flex;align-items:center;gap:8px;padding:4px 12px 4px 4px;border-radius:99px;border:1px solid var(--line);background:rgba(7,19,28,.7);color:var(--ink);font:inherit;font-size:.8rem;cursor:pointer;white-space:nowrap;transition:border-color .2s,background .2s}
+.hs i{width:18px;height:18px;border-radius:50%;background:var(--c);animation:ping 2.2s infinite}
+@keyframes ping{0%{box-shadow:0 0 0 0 var(--c)}70%,100%{box-shadow:0 0 0 11px transparent}}
+.hs.on{border-color:var(--c);background:rgba(7,19,28,.92)}
+.info{position:absolute;left:16px;bottom:16px;width:min(390px,calc(100% - 32px));padding:16px 18px;display:none;border-left:4px solid var(--c)}
+.info.show{display:block;animation:rise .35s ease}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.info h3{margin:0 0 6px;font-size:1.02rem;padding-right:28px}
+.info p{margin:0;font-size:.9rem;color:#cfe0ea}
+.x{position:absolute;right:10px;top:8px;width:30px;height:30px;border-radius:50%;border:0;background:rgba(255,255,255,.1);color:var(--ink);font-size:1.1rem;cursor:pointer}
+.panel{display:flex;flex-direction:column;padding:16px;min-height:0}
+.tabs{display:flex;gap:6px;background:rgba(255,255,255,.06);padding:4px;border-radius:12px}
+.tabs button{flex:1;border:0;background:none;color:var(--mute);font:inherit;font-weight:500;padding:8px;border-radius:9px;cursor:pointer}
+.tabs button.on{background:var(--cu);color:#1c0f06;font-weight:600}
+.pane{display:none;overflow:auto;flex:1;min-height:0;margin-top:14px;padding-right:4px}
+.pane.on{display:block;animation:rise .3s ease}
+.pane label{display:flex;justify-content:space-between;font-weight:500;margin-top:6px}
+.pane label b{color:var(--tl);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--tl);margin:10px 0 14px}
+.ms{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 10px}
+.m{background:rgba(255,255,255,.07);border-radius:12px;padding:10px}
+.m small{display:block;color:var(--mute);font-size:.72rem;line-height:1.3}
+.m b{font-size:1.05rem;font-variant-numeric:tabular-nums}
+.eq{background:rgba(255,255,255,.06);border-left:3px solid var(--tl);padding:8px 12px;border-radius:8px;margin:8px 0;overflow-wrap:anywhere;font-size:.92rem}
+.note{color:var(--mute);font-size:.82rem;margin:8px 0}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.btn{border:1px solid var(--line);background:rgba(255,255,255,.08);color:var(--ink);border-radius:10px;padding:8px 12px;font:inherit;font-size:.88rem;cursor:pointer}
+.btn.pri{background:var(--cu);border-color:transparent;color:#1c0f06;font-weight:600}
+.btn.on{border-color:var(--tl)}
+h4{margin:14px 0 4px;font-size:.95rem}
+ul{padding-left:20px;margin:6px 0;font-size:.9rem}
+.qs{border-top:1px solid var(--line);padding:12px 0;font-size:.92rem}
+.qs:first-of-type{border-top:0}
+.qs label{display:block;font-weight:400;margin:6px 0}
+.fb{font-weight:600;margin-top:6px;font-size:.88rem}
+.ok{color:var(--tl)}.no{color:#ff8a8a}
+.key{display:none;background:rgba(53,214,184,.1);border-radius:10px;padding:10px 14px;margin-top:10px;font-size:.88rem}
+.key.show{display:block}
+button:focus-visible,input:focus-visible{outline:3px solid #8dc8ff;outline-offset:2px}
+@media(max-width:900px){.app{grid-template-columns:1fr;grid-template-rows:62vh auto;height:auto}.panel{min-height:480px}.hud{max-width:230px}}
+@media(prefers-reduced-motion:reduce){.hs i,.info.show,.pane.on{animation:none}}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="stage" id="stage">
+<div class="hud glass"><h1>เซลล์กัลวานิก Zn | Zn²⁺ || Cu²⁺ | Cu</h1><p>ลากเพื่อหมุน ล้อเมาส์เพื่อซูม คลิกจุดบนโมเดลเพื่ออ่านคำอธิบาย</p><div class="big" id="hudE">1.100 V</div><p>ศักย์ไฟฟ้าเซลล์ Ecell</p></div>
+<div class="info glass" id="info"><button class="x" id="close" type="button" aria-label="ปิดการ์ด">×</button><h3 id="iT"></h3><p id="iB"></p><div class="eq" id="iE"></div></div>
+</div>
+<aside class="panel glass">
+<div class="tabs"><button type="button" class="on" data-p="p1">ทดลอง</button><button type="button" data-p="p2">สมการ</button><button type="button" data-p="p3">ทดสอบ</button></div>
+<div class="pane on" id="p1">
+<label for="cu">ความเข้มข้น Cu²⁺ <b id="cuV"></b></label>
+<input id="cu" type="range" min="0.1" max="2" step="0.1" value="1">
+<label for="res">ความต้านทานภายนอก R <b id="rV"></b></label>
+<input id="res" type="range" min="1" max="100" step="1" value="10">
+<div class="ms"><div class="m"><small>ศักย์ไฟฟ้า Ecell</small><b id="eC"></b></div><div class="m"><small>กระแสในแบบจำลอง</small><b id="cur"></b></div><div class="m"><small>การไหลของอิเล็กตรอน</small><b id="flow"></b></div></div>
+<div class="eq">Ecell = E°cell − (0.0592/2) log Q</div>
+<p class="note" id="nt"></p>
+<div class="row"><button class="btn" id="pause" type="button">หยุดภาพเคลื่อนไหว</button><button class="btn" id="spin" type="button">หมุนอัตโนมัติ</button><button class="btn pri" id="reset" type="button">คืนค่าเริ่มต้น</button></div>
+<h4>สำรวจชิ้นส่วน</h4>
+<div class="row" id="chips"></div>
+<p class="note">ที่อุณหภูมิ 25 °C กำหนด [Zn²⁺] = 1.0 mol/L คงที่ และใช้ความเข้มข้นแทนกิจกรรมของไอออน ใช้ I ≈ Ecell/R เพื่อแสดงแนวโน้มเท่านั้น ความเร็วของอนุภาคในภาพเป็นภาพสัญลักษณ์</p>
+</div>
+<div class="pane" id="p2">
+<h4>จุดประสงค์การเรียนรู้</h4>
+<p class="note">ระบุองค์ประกอบของเซลล์ไฟฟ้าเคมี เขียนสมการออกซิเดชันที่แอโนด รีดักชันที่แคโทด สมการรวม และแผนภาพเซลล์ได้</p>
+<div class="eq">แอโนด (−): Zn(s) → Zn²⁺(aq) + 2e⁻</div>
+<div class="eq">แคโทด (+): Cu²⁺(aq) + 2e⁻ → Cu(s)</div>
+<div class="eq">ปฏิกิริยารวม: Zn(s) + Cu²⁺(aq) → Zn²⁺(aq) + Cu(s)</div>
+<div class="eq">แผนภาพเซลล์: Zn(s) | Zn²⁺(aq, 1.0 M) || Cu²⁺(aq, C M) | Cu(s)</div>
+<h4>องค์ประกอบ</h4>
+<ul><li><b>แอโนด (−):</b> ขั้ว Zn เกิดออกซิเดชัน</li><li><b>แคโทด (+):</b> ขั้ว Cu เกิดรีดักชัน</li><li><b>วงจรภายนอก:</b> อิเล็กตรอนไหลจาก Zn ไป Cu</li><li><b>สะพานเกลือ:</b> ไอออนเคลื่อนที่เพื่อรักษาสมดุลประจุ</li></ul>
+</div>
+<div class="pane" id="p3">
+<form id="quiz"></form>
+</div>
+</aside>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const stage=$('stage');
+const S={t:0,paused:matchMedia('(prefers-reduced-motion:reduce)').matches,sp:.25,c:1};
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputEncoding=THREE.sRGBEncoding;
+stage.prepend(renderer.domElement);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(38,1,.1,100);
+const controls=new THREE.OrbitControls(camera,renderer.domElement);
+Object.assign(controls,{enableDamping:true,dampingFactor:.07,minDistance:5,maxDistance:24,maxPolarAngle:Math.PI*.52,autoRotateSpeed:1});
+const home=()=>{camera.position.set(0,5.2,13.5);controls.target.set(0,2.1,0);controls.update()};
+home();
+scene.add(new THREE.HemisphereLight(0xbfe4ff,0x10202a,.8));
+const sun=new THREE.DirectionalLight(0xffffff,.9);
+sun.position.set(5,10,6);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.bias=-.0005;
+Object.assign(sun.shadow.camera,{left:-8,right:8,top:8,bottom:-8,near:1,far:30});
+scene.add(sun);
+const pc=new THREE.PointLight(0xe08a52,.9,9);pc.position.set(4.5,3,3);scene.add(pc);
+const pz=new THREE.PointLight(0x7fb8ff,.9,9);pz.position.set(-4.5,3,3);scene.add(pz);
+const pick=[];
+const std=(c,o)=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.45,metalness:.1},o));
+const add=(g,m,x,y,z,key)=>{const o=new THREE.Mesh(g,m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;if(key){o.userData.key=key;pick.push(o)}scene.add(o);return o};
+add(new THREE.CylinderGeometry(5.6,5.8,.3,72),std(0x0e2330,{metalness:.5,roughness:.35}),0,-.15,0);
+const rim0=add(new THREE.TorusGeometry(5.7,.04,8,96),std(0x35d6b8,{emissive:0x35d6b8,emissiveIntensity:.7}),0,0,0);
+rim0.rotation.x=Math.PI/2;
+const glass=new THREE.MeshPhysicalMaterial({color:0xcfeaff,transparent:true,opacity:.16,roughness:.05,clearcoat:1,side:THREE.DoubleSide,depthWrite:false});
+const liquid=c=>new THREE.MeshStandardMaterial({color:c,transparent:true,opacity:.32,roughness:.2,depthWrite:false});
+const znLiq=liquid(0x8fc4ff),cuLiq=liquid(0x2fb7c9);
+function beaker(x,mat,key){
+ const body=new THREE.Mesh(new THREE.CylinderGeometry(1.3,1.3,2.7,48,1,true),glass);body.position.set(x,1.35,0);body.renderOrder=2;scene.add(body);
+ const lip=new THREE.Mesh(new THREE.TorusGeometry(1.3,.03,8,48),glass);lip.rotation.x=Math.PI/2;lip.position.set(x,2.7,0);scene.add(lip);
+ const base=new THREE.Mesh(new THREE.CylinderGeometry(1.3,1.3,.08,48),glass);base.position.set(x,.04,0);scene.add(base);
+ const l=add(new THREE.CylinderGeometry(1.24,1.24,1.9,48),mat,x,1,0,key);
+ l.castShadow=false;l.renderOrder=1;l.userData.liq=true;
+}
+beaker(-2.6,znLiq,'znsol');
+beaker(2.6,cuLiq,'cusol');
+add(new THREE.BoxGeometry(.32,3,1),std(0xaab8c4,{metalness:.85,roughness:.3}),-2.6,1.7,0,'anode');
+add(new THREE.BoxGeometry(.32,3,1),std(0xc87946,{metalness:.85,roughness:.28}),2.6,1.7,0,'cathode');
+const V=(x,y)=>new THREE.Vector3(x,y,0);
+const bridgeCurve=new THREE.CatmullRomCurve3([V(-1.7,.9),V(-1.7,2.9),V(-1.3,3.4),V(0,3.55),V(1.3,3.4),V(1.7,2.9),V(1.7,.9)],false,'catmullrom',.2);
+add(new THREE.TubeGeometry(bridgeCurve,64,.17,16,false),new THREE.MeshPhysicalMaterial({color:0xffd66b,transparent:true,opacity:.6,roughness:.15,clearcoat:1}),0,0,0,'bridge');
+const wireCurve=new THREE.CatmullRomCurve3([V(-2.6,3.2),V(-2.6,3.9),V(-2.35,4.3),V(-1.2,4.3),V(0,4.3),V(1.2,4.3),V(2.35,4.3),V(2.6,3.9),V(2.6,3.2)],false,'centripetal');
+add(new THREE.TubeGeometry(wireCurve,80,.06,10,false),std(0x8da0af,{metalness:.8,roughness:.3}),0,0,0,'wire');
+add(new THREE.BoxGeometry(1.1,.36,.36),std(0xd8c3a0,{roughness:.6}),0,4.3,0,'wire');
+[[-.3,0xb33a3a],[0,0x222222],[.3,0xe8b21f]].forEach(b=>add(new THREE.BoxGeometry(.08,.4,.4),std(b[1]),b[0],4.3,0,'wire'));
+const dot=(r,c,k)=>{const m=new THREE.Mesh(new THREE.SphereGeometry(r,16,12),std(c,{emissive:c,emissiveIntensity:k,roughness:.3}));scene.add(m);return m};
+const electrons=Array.from({length:16},(_,i)=>Object.assign(dot(.085,0xffc247,.8),{u:i/16}));
+const bridgeK=Array.from({length:5},(_,i)=>Object.assign(dot(.09,0xb48cff,.6),{u:i/5}));
+const bridgeN=Array.from({length:5},(_,i)=>Object.assign(dot(.09,0xff8f5a,.6),{u:(i+.5)/5}));
+function ions(n,x,c){
+ return Array.from({length:n},(_,i)=>{
+  const m=dot(.11,c,.5),a=Math.random()*Math.PI*2,r=.2+Math.random()*.7;
+  m.b=new THREE.Vector3(x+Math.cos(a)*r,.3+Math.random()*1.5,Math.sin(a)*r*.9);
+  m.p=Math.random()*6.28;
+  return m;
+ });
+}
+const znIons=ions(24,-2.6,0x4aa3ff),cuIons=ions(40,2.6,0x35d6b8);
+znIons.forEach(m=>{if(Math.abs(m.b.x+2.6)<.3)m.b.x-=.5});
+cuIons.forEach(m=>{if(Math.abs(m.b.x-2.6)<.3)m.b.x+=.5});
+const spots=[
+{k:'anode',n:'แอโนด Zn',p:V(-2.6,3.2),c:'#8fc4ff',t:'แอโนด (−) ขั้วสังกะสี',b:'อะตอม Zn เสียอิเล็กตรอนกลายเป็น Zn²⁺ ละลายเข้าสู่สารละลาย เกิดออกซิเดชัน มวลขั้วลดลงขณะเซลล์ทำงาน',e:'Zn(s) → Zn²⁺(aq) + 2e⁻'},
+{k:'cathode',n:'แคโทด Cu',p:V(2.6,3.2),c:'#e08a52',t:'แคโทด (+) ขั้วทองแดง',b:'Cu²⁺ ในสารละลายรับอิเล็กตรอนแล้วเกาะที่ขั้วเป็นโลหะ Cu เกิดรีดักชัน มวลขั้วเพิ่มขึ้น',e:'Cu²⁺(aq) + 2e⁻ → Cu(s)'},
+{k:'bridge',n:'สะพานเกลือ',p:V(0,3.6),c:'#ffd66b',t:'สะพานเกลือ',b:'ไอออนบวก (K⁺ สีม่วง) เคลื่อนไปครึ่งเซลล์แคโทด ไอออนลบ (NO₃⁻ สีส้ม) เคลื่อนไปครึ่งเซลล์แอโนด เพื่อรักษาสมดุลประจุและทำให้วงจรครบ',e:'K⁺ → ฝั่ง Cu   |   NO₃⁻ → ฝั่ง Zn'},
+{k:'wire',n:'วงจรภายนอก',p:V(0,4.8),c:'#ffc247',t:'วงจรภายนอกและตัวต้านทาน',b:'อิเล็กตรอนไหลจาก Zn ไป Cu ส่วนทิศกระแสไฟฟ้าตามนิยามเป็นทิศตรงข้าม ยิ่ง R มาก กระแสยิ่งน้อย อิเล็กตรอนในภาพจึงเคลื่อนที่ช้าลง',e:'I ≈ Ecell / R'},
+{k:'znsol',n:'Zn²⁺',p:V(-3.35,.9),c:'#4aa3ff',t:'สารละลาย Zn²⁺ 1.0 mol/L',b:'ครึ่งเซลล์แอโนด แบบจำลองนี้กำหนด [Zn²⁺] = 1.0 mol/L คงที่',e:'Zn(s) | Zn²⁺(aq, 1.0 M)'},
+{k:'cusol',n:'Cu²⁺',p:V(3.35,.9),c:'#35d6b8',t:'สารละลาย Cu²⁺',b:'ครึ่งเซลล์แคโทด ลองเลื่อนแถบความเข้มข้น จำนวนไอออนสีเขียวอมฟ้าและสีของสารละลายจะเปลี่ยนตาม และ Ecell เปลี่ยนตามสมการเนิร์นสต์',e:'Q = [Zn²⁺] / [Cu²⁺]'}
+];
+function show(k){
+ const s=spots.find(x=>x.k===k),card=$('info');
+ card.style.setProperty('--c',s.c);
+ $('iT').textContent=s.t;$('iB').textContent=s.b;$('iE').textContent=s.e;
+ card.classList.remove('show');void card.offsetWidth;card.classList.add('show');
+ spots.forEach(x=>x.el.classList.toggle('on',x===s));
+}
+spots.forEach(s=>{
+ s.el=document.createElement('button');s.el.type='button';s.el.className='hs';s.el.style.setProperty('--c',s.c);
+ s.el.innerHTML='<i></i><span>'+s.n+'</span>';
+ s.el.onclick=()=>show(s.k);stage.appendChild(s.el);
+ const chip=document.createElement('button');chip.type='button';chip.className='btn';chip.textContent=s.n;chip.onclick=()=>show(s.k);$('chips').appendChild(chip);
+});
+$('close').onclick=()=>{$('info').classList.remove('show');spots.forEach(x=>x.el.classList.remove('on'))};
+const rc=new THREE.Raycaster(),mv=new THREE.Vector2();
+let down=null;
+renderer.domElement.addEventListener('pointerdown',e=>{down=[e.clientX,e.clientY]});
+renderer.domElement.addEventListener('pointerup',e=>{
+ if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>5)return;
+ const r=renderer.domElement.getBoundingClientRect();
+ mv.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);
+ rc.setFromCamera(mv,camera);
+ const hits=rc.intersectObjects(pick),h=hits.find(x=>!x.object.userData.liq)||hits[0];
+ if(h)show(h.object.userData.key);
+});
+let W=1,H=1;
+function resize(){
+ W=stage.clientWidth;H=stage.clientHeight;
+ renderer.setSize(W,H);camera.aspect=W/H;camera.zoom=Math.min(1,W/H/1.45);camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(stage);
+resize();
+function update(){
+ const c=+$('cu').value,r=+$('res').value,q=1/c,e=1.1-(0.0592/2)*Math.log10(q),ma=e/r*1000;
+ S.c=c;S.sp=.55/(1+r/12)*(e/1.1);
+ $('cuV').textContent=c.toFixed(1)+' mol/L';
+ $('rV').textContent=r+' Ω';
+ $('eC').textContent=e.toFixed(3)+' V';
+ $('hudE').textContent=e.toFixed(3)+' V';
+ $('cur').textContent=ma>=1000?(ma/1000).toFixed(2)+' A':ma.toFixed(1)+' mA';
+ $('flow').textContent=r<10?'ไหลเร็ว':r<35?'ไหลปานกลาง':'ไหลช้า';
+ $('nt').textContent=Math.abs(c-1)<.001?'เมื่อ [Cu²⁺] = 1.0 M จะได้ Q = 1 และ Ecell = E°cell = 1.10 V':`Q = 1.0/${c.toFixed(1)} = ${q.toFixed(3)} จึงได้ Ecell = 1.10 − (0.0592/2) log₁₀(${q.toFixed(3)}) = ${e.toFixed(3)} V ซึ่ง${c>1?'เพิ่มขึ้น':'ลดลง'}จากค่ามาตรฐาน`;
+ cuLiq.opacity=.12+.14*c;
+ cuIons.forEach((m,i)=>{m.visible=i<Math.round(c*20)});
+}
+$('cu').oninput=update;$('res').oninput=update;
+$('pause').onclick=()=>{S.paused=!S.paused;$('pause').textContent=S.paused?'เล่นภาพเคลื่อนไหว':'หยุดภาพเคลื่อนไหว'};
+$('spin').onclick=()=>{controls.autoRotate=!controls.autoRotate;$('spin').classList.toggle('on',controls.autoRotate)};
+$('reset').onclick=()=>{
+ $('cu').value=1;$('res').value=10;S.paused=false;controls.autoRotate=false;
+ $('pause').textContent='หยุดภาพเคลื่อนไหว';$('spin').classList.remove('on');
+ home();update();
+};
+$('pause').textContent=S.paused?'เล่นภาพเคลื่อนไหว':'หยุดภาพเคลื่อนไหว';
+document.querySelectorAll('.tabs button').forEach(b=>{
+ b.onclick=()=>{document.querySelectorAll('.tabs button,.pane').forEach(x=>x.classList.remove('on'));b.classList.add('on');$(b.dataset.p).classList.add('on')};
+});
+const Q=[
+{q:'เมื่อเพิ่มความเข้มข้น Cu²⁺ จาก 0.5 M เป็น 1.0 M โดยคง [Zn²⁺] = 1.0 M ศักย์ไฟฟ้าเซลล์เปลี่ยนอย่างไร?',o:['ลดลง เพราะ Q เพิ่มขึ้น','เพิ่มขึ้น เพราะ Q ลดลง','ไม่เปลี่ยน เพราะ E° คงที่','เป็นศูนย์ทันที'],k:1,r:'Q = [Zn²⁺]/[Cu²⁺] ลดลงเมื่อ [Cu²⁺] เพิ่ม จึงทำให้ Ecell เพิ่มขึ้นตามสมการเนิร์นสต์'},
+{q:'ข้อใดเป็นสมการที่เกิดขึ้นที่แคโทดของเซลล์ Zn–Cu ขณะจ่ายไฟ?',o:['Zn(s) → Zn²⁺(aq) + 2e⁻','Cu(s) → Cu²⁺(aq) + 2e⁻','Cu²⁺(aq) + 2e⁻ → Cu(s)','Zn²⁺(aq) + 2e⁻ → Zn(s)'],k:2,r:'แคโทดเป็นตำแหน่งที่เกิดรีดักชัน Cu²⁺ รับอิเล็กตรอนกลายเป็น Cu(s)'},
+{q:'หากเพิ่มความต้านทานภายนอกจาก 10 Ω เป็น 50 Ω ในแบบจำลองที่ใช้ I ≈ Ecell/R จะเกิดผลใด?',o:['กระแสเพิ่มขึ้น 5 เท่า','กระแสลดลงประมาณ 5 เท่า','ศักย์ไฟฟ้ามาตรฐานเพิ่มขึ้น 5 เท่า','ปฏิกิริยาที่แอโนดสลับเป็นรีดักชัน'],k:1,r:'เมื่อ Ecell ใกล้คงที่ กระแสแปรผกผันกับ R จึงลดลงประมาณ 5 เท่าเมื่อเพิ่ม R 5 เท่า'}
+];
+$('quiz').innerHTML=Q.map((x,i)=>`<div class="qs"><b>${i+1}. ${x.q}</b>${x.o.map((t,j)=>`<label><input type="radio" name="q${i}" value="${j}"> ${'กขคง'[j]}. ${t}</label>`).join('')}<div class="fb" id="f${i}"></div></div>`).join('')+
+`<div class="row"><button class="btn pri" type="submit">ตรวจคำตอบ</button><button class="btn" type="button" id="ans">แสดงเฉลย</button></div><div class="fb" id="score" aria-live="polite"></div><div class="key" id="key"><b>เฉลยพร้อมเหตุผล</b><ol>${Q.map(x=>`<li><b>${'กขคง'[x.k]}.</b> ${x.r}</li>`).join('')}</ol></div>`;
+$('quiz').onsubmit=e=>{
+ e.preventDefault();let n=0;
+ Q.forEach((x,i)=>{
+  const s=document.querySelector(`input[name=q${i}]:checked`),f=$('f'+i);
+  if(s&&+s.value===x.k){n++;f.textContent='ถูกต้อง: '+x.r;f.className='fb ok'}
+  else{f.textContent='ยังไม่ถูกต้อง ลองทบทวนแนวคิดหรือกด “แสดงเฉลย”';f.className='fb no'}
+ });
+ $('score').textContent=`คะแนนของคุณ ${n}/${Q.length} ข้อ`;
+};
+$('ans').onclick=()=>$('key').classList.toggle('show');
+const pv=new THREE.Vector3();
+function frame(){
+ requestAnimationFrame(frame);
+ const dt=Math.min(.05,frame.last?(performance.now()-frame.last)/1000:.016);
+ frame.last=performance.now();
+ if(!S.paused){
+  S.t+=dt;
+  electrons.forEach(m=>{m.u=(m.u+S.sp*.9*dt/4)%1});
+  bridgeK.forEach(m=>{m.u=(m.u+S.sp*.5*dt/3)%1});
+  bridgeN.forEach(m=>{m.u=(m.u-S.sp*.5*dt/3+1)%1});
+ }
+ electrons.forEach(m=>m.position.copy(wireCurve.getPointAt(m.u)));
+ bridgeK.concat(bridgeN).forEach(m=>m.position.copy(bridgeCurve.getPointAt(m.u)));
+ znIons.concat(cuIons).forEach(m=>{
+  m.position.set(m.b.x+Math.sin(S.t*.9+m.p)*.09,m.b.y+Math.sin(S.t*1.1+m.p*2)*.1,m.b.z+Math.cos(S.t*.8+m.p)*.09);
+ });
+ controls.update();
+ renderer.render(scene,camera);
+ spots.forEach(s=>{
+  pv.copy(s.p).project(camera);
+  s.el.style.transform=`translate(${(pv.x+1)/2*W-13}px,${(1-pv.y)/2*H}px) translateY(-50%)`;
+  s.el.style.display=pv.z>1?'none':'flex';
+ });
+}
+update();
+frame();
+</script>
+</body>
+</html>
